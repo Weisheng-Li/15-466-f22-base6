@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <cstring>
+#include <chrono>
 
 #include <glm/gtx/norm.hpp>
 
@@ -80,6 +81,7 @@ bool Player::recv_player_message(Connection *connection_) {
 //-----------------------------------------
 
 Game::Game() : mt(0x15466666) {
+	map_setup();
 }
 
 Player *Game::spawn_player() {
@@ -96,13 +98,14 @@ Player *Game::spawn_player() {
 		}
 	}
 
-	for (auto &pos: start_pos) {
-		std::cout << pos.x << " " << pos.y << " "
-		 << pos.z << " " << pos.w << std::endl;
-	}
+	// for (auto &pos: start_pos) {
+	// 	std::cout << pos.x << " " << pos.y << " "
+	// 	 << pos.z << " " << pos.w << std::endl;
+	// }
 
 	player.position = player.start_position;
 	player.current_state = pos_to_layout(player.position);
+	player.role = player.start_position.x > 0 ? Player::Role::HUNTER : Player::Role::HUNTER;
 
 	// do {
 	// 	player.color.r = mt() / float(mt.max());
@@ -139,14 +142,57 @@ void Game::remove_player(Player *player) {
 	assert(found);
 }
 
+void Game::map_setup() {
+	unsigned int mine_count = 10;
+
+	for (int i = 0; i < 10; i++)
+		for (int j = 0; j < 10; j++)
+			layout[i][j] = 0;
+
+	// set up the mine
+	while (mine_count) {
+		unsigned int row, col;
+		row = mt() % 10;
+		col = mt() % 10;
+
+		// don't set mine on start position
+		if (row == 0 && col == 0) continue;
+		if (row == 9 && col == 9) continue;
+
+		if (layout[row][col] == 0) {
+			layout[row][col] = -1;
+			mine_count -= 1;
+		}
+	}
+
+	// return 1 if there is a mine in given index
+	auto get_layout = [this](int i, int j) {
+		if (i >= 0 && i < 10 && j >= 0 && j < 10) 
+			return layout[i][j] == -1;
+		else
+			return false;
+	};
+
+	// then other cells
+	for (int i = 0; i < 10; i++) {
+		for (int j = 0; j < 10; j++) {
+			if (layout[i][j] == -1) continue;
+
+			assert(layout[i][j] == 0);
+			layout[i][j] += get_layout(i-1, j-1) + get_layout(i, j-1) + get_layout(i-1, j)
+						  + get_layout(i+1, j+1) + get_layout(i, j+1) + get_layout(i+1, j)
+						  + get_layout(i+1, j-1) + get_layout(i-1, j+1);
+		}
+	}
+}
 
 // helper function
 int16_t Game::pos_to_layout(glm::vec3 player_pos) {
 	// checker board has grid_size * grid_size grid cells
-	const unsigned int grid_size = 4;
-	const unsigned int grid_cell_size = 5;
+	const unsigned int grid_size = 10;
+	const unsigned int grid_cell_size = 4;
 
-	const glm::vec3 origin = glm::vec3(-10.0f, -10.0f, 0.0f);
+	const glm::vec3 origin = glm::vec3(-20.0f, -20.0f, 0.0f);
 
 	// define initial player position (also defined in)
 	glm::vec2 offset = glm::vec2(player_pos - origin);
@@ -165,8 +211,6 @@ int16_t Game::pos_to_layout(glm::vec3 player_pos) {
 
 	if (!is_valid(row) || !is_valid(col)) return -2;
 
-	if (layout[row][col] == 65535) 
-		std::cout << row << " " << col << std::endl;
 	return layout[row][col];
 }
 
@@ -268,6 +312,7 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
 		connection.send(player.position);
 		connection.send(player.start_position);
 		connection.send(player.current_state);
+		connection.send(player.role);
 		// connection.send(player.velocity);
 		// connection.send(player.color);
 	
@@ -327,6 +372,7 @@ bool Game::recv_state_message(Connection *connection_) {
 		read(&player.position);
 		read(&player.start_position);
 		read(&player.current_state);
+		read(&player.role);
 		// read(&player.velocity);
 		// read(&player.color);
 		// uint8_t name_len;

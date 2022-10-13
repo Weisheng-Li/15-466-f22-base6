@@ -46,7 +46,7 @@ Load< Scene > phonebank_scene(LoadTagDefault, []() -> Scene const * {
 WalkMesh const *walkmesh = nullptr;
 Load< WalkMeshes > phonebank_walkmeshes(LoadTagDefault, []() -> WalkMeshes const * {
 	WalkMeshes *ret = new WalkMeshes(data_path("plane.w"));
-	walkmesh = &ret->lookup("WalkMesh");
+	walkmesh = &ret->lookup("WalkMesh.001");
 	return ret;
 });
 

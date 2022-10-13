@@ -41,6 +41,13 @@ struct Player {
 	glm::vec3 start_position = glm::vec3(0.0f, 0.0f, 0.0f);
 	int16_t current_state = 0;
 
+	enum class Role : uint8_t {
+		PREY = 1,
+		HUNTER = 2,
+	};
+
+	Role role;
+
 	//returns 'false' if no message or not a controls message,
 	//returns 'true' if read a controls message,
 	//throws on malformed controls message
@@ -76,12 +83,16 @@ struct Game {
 
 	//----------------- New ---------------------
 	// map layout:
-	inline static constexpr std::array<std::array<int16_t, 4>, 4> layout = {{
-		{1, 1, 1, 100}, 
-		{-1, 2, -1, 2}, 
-		{1, 3, 3, -1}, 
-		{0, 1, -1, 2}
-	}};
+	// std::array<std::array<int16_t, 4>, 4> layout = {{
+	// 	{1, 1, 1, 1}, 
+	// 	{-1, 2, -1, 2}, 
+	// 	{1, 3, 3, -1}, 
+	// 	{0, 1, -1, 2}
+	// }};
+
+	std::array<std::array<int16_t, 10>, 10> layout;
+	void map_setup();
+
 	// conversion between player pos and map grid
 	int16_t pos_to_layout(glm::vec3 player_pos);
 
@@ -89,8 +100,8 @@ struct Game {
 	// the start pos has been used
 	// 0 - not used; anything else - used
 	 std::array<glm::vec4, 2> start_pos = {
-		glm::vec4(-10.0f, -10.0f, 0.0f, 0.0f),
-		glm::vec4(10.0f, 10.0f, 0.0f, 0.0f)
+		glm::vec4(-20.0f, -20.0f, 0.0f, 0.0f),
+		glm::vec4(20.0f, 20.0f, 0.0f, 0.0f)
 	};
 	//-------------------------------------------
 	

@@ -17,7 +17,7 @@ For both player, WASD to move and mouse cursor to rotate the camera.
 Each player's assigned role (hunter / prey) is shown on the button-left.
 
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+Sources: N/A
 
 This game was built with [NEST](NEST.md).
 

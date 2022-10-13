@@ -21,19 +21,6 @@ void Player::send_player_message(Connection *connection_) const {
 	connection.send(uint8_t(size >> 16));
 
 	connection.send(position);
-
-	// auto send_button = [&](Button const &b) {
-	// 	if (b.downs & 0x80) {
-	// 		std::cerr << "Wow, you are really good at pressing buttons!" << std::endl;
-	// 	}
-	// 	connection.send(uint8_t( (b.pressed ? 0x80 : 0x00) | (b.downs & 0x7f) ) );
-	// };
-
-	// send_button(left);
-	// send_button(right);
-	// send_button(up);
-	// send_button(down);
-	// send_button(jump);
 }
 
 bool Player::recv_player_message(Connection *connection_) {
@@ -54,22 +41,6 @@ bool Player::recv_player_message(Connection *connection_) {
 	if (recv_buffer.size() < 4 + size) return false;
 
 	std::memcpy(&position, &recv_buffer[4+0], sizeof(glm::vec3));
-
-	// auto recv_button = [](uint8_t byte, Button *button) {
-	// 	button->pressed = (byte & 0x80);
-	// 	uint32_t d = uint32_t(button->downs) + uint32_t(byte & 0x7f);
-	// 	if (d > 255) {
-	// 		std::cerr << "got a whole lot of downs" << std::endl;
-	// 		d = 255;
-	// 	}
-	// 	button->downs = uint8_t(d);
-	// };
-
-	// recv_button(recv_buffer[4+0], &left);
-	// recv_button(recv_buffer[4+1], &right);
-	// recv_button(recv_buffer[4+2], &up);
-	// recv_button(recv_buffer[4+3], &down);
-	// recv_button(recv_buffer[4+4], &jump);
 
 	//delete message from buffer:
 	recv_buffer.erase(recv_buffer.begin(), recv_buffer.begin() + 4 + size);
@@ -98,23 +69,9 @@ Player *Game::spawn_player() {
 		}
 	}
 
-	// for (auto &pos: start_pos) {
-	// 	std::cout << pos.x << " " << pos.y << " "
-	// 	 << pos.z << " " << pos.w << std::endl;
-	// }
-
 	player.position = player.start_position;
 	player.current_state = pos_to_layout(player.position);
-	player.role = player.start_position.x > 0 ? Player::Role::HUNTER : Player::Role::HUNTER;
-
-	// do {
-	// 	player.color.r = mt() / float(mt.max());
-	// 	player.color.g = mt() / float(mt.max());
-	// 	player.color.b = mt() / float(mt.max());
-	// } while (player.color == glm::vec3(0.0f));
-	// player.color = glm::normalize(player.color);
-
-	// player.name = "Player " + std::to_string(next_player_number++);
+	player.role = player.start_position.x > 0 ? Player::Role::HUNTER : Player::Role::PREY;
 
 	return &player;
 }
@@ -219,43 +176,35 @@ void Game::update(float elapsed) {
 	for (auto &p : players) {
 		p.current_state = pos_to_layout(p.position);
 
-		// glm::vec2 dir = glm::vec2(0.0f, 0.0f);
-		// if (p.controls.left.pressed) dir.x -= 1.0f;
-		// if (p.controls.right.pressed) dir.x += 1.0f;
-		// if (p.controls.down.pressed) dir.y -= 1.0f;
-		// if (p.controls.up.pressed) dir.y += 1.0f;
+		// resolve collision
+		for (auto &p2: players) {
+			if (&p == &p2) break;
 
-		// if (dir == glm::vec2(0.0f)) {
-		// 	//no inputs: just drift to a stop
-		// 	float amt = 1.0f - std::pow(0.5f, elapsed / (PlayerAccelHalflife * 2.0f));
-		// 	p.velocity = glm::mix(p.velocity, glm::vec2(0.0f,0.0f), amt);
-		// } else {
-		// 	//inputs: tween velocity to target direction
-		// 	dir = glm::normalize(dir);
+			const float threshold = 1.0f;
+			if (glm::distance(p.position, p2.position) < threshold) {
+				if (p.role == Player::Role::HUNTER) {
+					// win
+					p.current_state = -3;
+				}
+				else {
+					// lose
+					p.current_state = -1;
+				}
+			}
+		}
 
-		// 	float amt = 1.0f - std::pow(0.5f, elapsed / PlayerAccelHalflife);
+		if (p.current_state == -1 || p.current_state == -3) {
+			for (auto &p3 : players) {
+				if (&p == &p3) break;
 
-		// 	//accelerate along velocity (if not fast enough):
-		// 	float along = glm::dot(p.velocity, dir);
-		// 	if (along < PlayerSpeed) {
-		// 		along = glm::mix(along, PlayerSpeed, amt);
-		// 	}
+				if (p.current_state == -1) p3.current_state = -3;
+				if (p.current_state == -3) p3.current_state = -1;
+			}
 
-		// 	//damp perpendicular velocity:
-		// 	float perp = glm::dot(p.velocity, glm::vec2(-dir.y, dir.x));
-		// 	perp = glm::mix(perp, 0.0f, amt);
-
-		// 	p.velocity = dir * along + glm::vec2(-dir.y, dir.x) * perp;
-		// }
-		// p.position += p.velocity * elapsed;
-
-		// //reset 'downs' since controls have been handled:
-		// p.controls.left.downs = 0;
-		// p.controls.right.downs = 0;
-		// p.controls.up.downs = 0;
-		// p.controls.down.downs = 0;
-		// p.controls.jump.downs = 0;
+			break;
+		}
 	}
+
 
 	// //collision resolution:
 	// for (auto &p1 : players) {

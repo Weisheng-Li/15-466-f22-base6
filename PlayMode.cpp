@@ -155,6 +155,15 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
+	if (countdown > 0.0f) {
+		countdown -= elapsed;
+		if (countdown <= 0) {
+			countdown = 0.0f;
+			reset_game();
+		}
+		return;
+	}
+
 	static bool start_pos_set = false;
 
 	Player::Controls &controls = local_player.controls;
@@ -273,7 +282,10 @@ void PlayMode::update(float elapsed) {
 			// reset player
 			transform->position = me.start_position;
 			local_player.position = transform->position;
-			transform->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+			if (me.start_position.x < 0 && me.start_position.y < 0)
+				transform->rotation = glm::angleAxis(glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			else
+				transform->rotation = glm::angleAxis(glm::radians(180.0f - 45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 			//rotate camera facing direction (-z) to player facing direction (+y):
 			camera->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -315,17 +327,19 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			glm::vec3(0.8392f, 0.1569f, 0.1569f), // red
 			glm::vec3(0.0000f, 0.1882f, 0.2863f)  // dark blue
 		};
-		size_t pallete_size = color_pallete.size();
+		size_t pallete_size = 4;	// the last color is reserved for end-game
 		glm::vec3 current_color;
 		
-		if (current_state != 100 && (current_state < -2 || current_state >= static_cast<int16_t>(pallete_size)))
-			current_state = -2;
-		if (current_state == -1) current_color = color_pallete[pallete_size - 1];
+		size_t color_idx = current_state;
+		if (current_state >= pallete_size)
+			color_idx = pallete_size - 1;
+		
+		if (current_state == -1) current_color = color_pallete[pallete_size];
 		else if (current_state == -2) current_color = glm::vec3(1.0f, 1.0f, 1.0f);
-		else if (current_state == 100) current_color = color_pallete[1];
+		else if (current_state == -3) current_color = color_pallete[2];
 		else {
-			assert(current_state < static_cast<int16_t>(pallete_size));
-			current_color = color_pallete[current_state];
+			assert(color_idx >= 0);
+			current_color = color_pallete[color_idx];
 		}
 
 		glClearColor(current_color.x, current_color.y, current_color.z, 1.0f);
@@ -362,32 +376,23 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	// show text on the screen
 	if (current_state == -1) {
-		// game over
 		constexpr float H2 = 0.3f;
-		lines.draw_text("Game Over",
+		lines.draw_text("You Lose",
 		glm::vec3(-aspect + 4.0f * H2, -1.0 + 5.0f * H2, 0.0),
 		glm::vec3(H2, 0.0f, 0.0f), glm::vec3(0.0f, H2, 0.0f),
 		glm::u8vec4(0xff, 0xff, 0xff, 0xff));
 
-		// if (countdown == 0.0f)
-		// 	countdown = 2.0f;
-	} else if (current_state == 100) {
-		// win
+		if (countdown == 0.0f)
+			countdown = 200.0f;
+	} else if (current_state == -3) {
 		constexpr float H2 = 0.3f;
-		lines.draw_text("You've reached the",
-		glm::vec3(-aspect + 2.5f * H2, -1.0 + 5.0f * H2, 0.0),
+		lines.draw_text("You Win",
+		glm::vec3(-aspect + 4.0f * H2, -1.0 + 5.0f * H2, 0.0),
 		glm::vec3(H2, 0.0f, 0.0f), glm::vec3(0.0f, H2, 0.0f),
-		glm::u8vec4(0x0, 0x0, 0x0, 0x0));
-		lines.draw_text("Destination",
-		glm::vec3(-aspect + 4.0f * H2, -1.0 + 3.5f * H2, 0.0),
-		glm::vec3(H2, 0.0f, 0.0f), glm::vec3(0.0f, H2, 0.0f),
-		glm::u8vec4(0x0, 0x0, 0x0, 0x0));
-
-		// if (countdown == 0.0f) {
-		// 	countdown = 2.0f;
-		// 	target->position = target->position + glm::vec3(0, 0, -100);
-		// }
-	} else if (current_state == -2){	// no text shown
+		glm::u8vec4(0xff, 0xff, 0xff, 0xff));
+		if (countdown == 0.0f)
+			countdown = 200.0f;
+	} else if (current_state == -2) {	// no text shown
 	} else {
 		constexpr float H2 = 0.3f;
 		glm::u8vec4 color;
@@ -400,85 +405,48 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		color);
 	}
 
+	if (game.players.front().role == Player::Role::HUNTER) {
+		constexpr float H = 0.09f;
+		lines.draw_text("Hunting Time",
+			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
+		float ofs = 2.0f / drawable_size.y;
+		lines.draw_text("Hunting Time",
+			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+	} else {
+		constexpr float H = 0.09f;
+		lines.draw_text("Don't get caught",
+			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
+		float ofs = 2.0f / drawable_size.y;
+		lines.draw_text("Don't get caught",
+			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+	}
+
 	GL_ERRORS();
+}
 
-////////////////////////////////////////////////////////////////////////////
+void PlayMode::reset_game() {
+	std::cout << "reset!" << std::endl;
+	// reset player
+	Player &me = game.players.front();
+	transform->position = me.start_position;
+	local_player.position = transform->position;
+	transform->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
+	//rotate camera facing direction (-z) to player facing direction (+y):
+	camera->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-	// static std::array< glm::vec2, 16 > const circle = [](){
-	// 	std::array< glm::vec2, 16 > ret;
-	// 	for (uint32_t a = 0; a < ret.size(); ++a) {
-	// 		float ang = a / float(ret.size()) * 2.0f * float(M_PI);
-	// 		ret[a] = glm::vec2(std::cos(ang), std::sin(ang));
-	// 	}
-	// 	return ret;
-	// }();
+	//start player walking at nearest walk point:
+	at = walkmesh->nearest_walk_point(transform->position);
 
-	// glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-	// glClear(GL_COLOR_BUFFER_BIT);
-	// glDisable(GL_DEPTH_TEST);
-	
-	// //figure out view transform to center the arena:
-	// float aspect = float(drawable_size.x) / float(drawable_size.y);
-	// float scale = std::min(
-	// 	2.0f * aspect / (Game::ArenaMax.x - Game::ArenaMin.x + 2.0f * Game::PlayerRadius),
-	// 	2.0f / (Game::ArenaMax.y - Game::ArenaMin.y + 2.0f * Game::PlayerRadius)
-	// );
-	// glm::vec2 offset = -0.5f * (Game::ArenaMax + Game::ArenaMin);
+	game.players.front().current_state = -2;
 
-	// glm::mat4 world_to_clip = glm::mat4(
-	// 	scale / aspect, 0.0f, 0.0f, offset.x,
-	// 	0.0f, scale, 0.0f, offset.y,
-	// 	0.0f, 0.0f, 1.0f, 0.0f,
-	// 	0.0f, 0.0f, 0.0f, 1.0f
-	// );
-
-	// {
-	// 	DrawLines lines(world_to_clip);
-
-	// 	//helper:
-	// 	auto draw_text = [&](glm::vec2 const &at, std::string const &text, float H) {
-	// 		lines.draw_text(text,
-	// 			glm::vec3(at.x, at.y, 0.0),
-	// 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-	// 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
-	// 		float ofs = (1.0f / scale) / drawable_size.y;
-	// 		lines.draw_text(text,
-	// 			glm::vec3(at.x + ofs, at.y + ofs, 0.0),
-	// 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-	// 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
-	// 	};
-
-	// 	lines.draw(glm::vec3(Game::ArenaMin.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMax.x, Game::ArenaMin.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
-	// 	lines.draw(glm::vec3(Game::ArenaMin.x, Game::ArenaMax.y, 0.0f), glm::vec3(Game::ArenaMax.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
-	// 	lines.draw(glm::vec3(Game::ArenaMin.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMin.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
-	// 	lines.draw(glm::vec3(Game::ArenaMax.x, Game::ArenaMin.y, 0.0f), glm::vec3(Game::ArenaMax.x, Game::ArenaMax.y, 0.0f), glm::u8vec4(0xff, 0x00, 0xff, 0xff));
-
-	// 	for (auto const &player : game.players) {
-	// 		glm::u8vec4 col = glm::u8vec4(player.color.x*255, player.color.y*255, player.color.z*255, 0xff);
-	// 		if (&player == &game.players.front()) {
-	// 			//mark current player (which server sends first):
-	// 			lines.draw(
-	// 				glm::vec3(player.position + Game::PlayerRadius * glm::vec2(-0.5f,-0.5f), 0.0f),
-	// 				glm::vec3(player.position + Game::PlayerRadius * glm::vec2( 0.5f, 0.5f), 0.0f),
-	// 				col
-	// 			);
-	// 			lines.draw(
-	// 				glm::vec3(player.position + Game::PlayerRadius * glm::vec2(-0.5f, 0.5f), 0.0f),
-	// 				glm::vec3(player.position + Game::PlayerRadius * glm::vec2( 0.5f,-0.5f), 0.0f),
-	// 				col
-	// 			);
-	// 		}
-	// 		for (uint32_t a = 0; a < circle.size(); ++a) {
-	// 			lines.draw(
-	// 				glm::vec3(player.position + Game::PlayerRadius * circle[a], 0.0f),
-	// 				glm::vec3(player.position + Game::PlayerRadius * circle[(a+1)%circle.size()], 0.0f),
-	// 				col
-	// 			);
-	// 		}
-
-	// 		draw_text(player.position + glm::vec2(0.0f, -0.1f + Game::PlayerRadius), player.name, 0.09f);
-	// 	}
-	// }
-	// GL_ERRORS();
+	update(0);
 }

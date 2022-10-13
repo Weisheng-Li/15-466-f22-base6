@@ -185,7 +185,7 @@ void Game::update(float elapsed) {
 		std::chrono::duration_cast<std::chrono::seconds>
 		(std::chrono::steady_clock::now() - begin).count();
 
-	if (since_begin == 20) {
+	if (since_begin == 40) {
 		for (auto &p : players) {
 			if (p.role == Player::Role::PREY) 
 				p.current_state = -3;

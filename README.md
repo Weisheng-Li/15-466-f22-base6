@@ -1,18 +1,21 @@
-# (TODO: your game's title)
+# untitled
 
-Author: (TODO: your name)
+Author: Weisheng Li
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: Two players walking on a minesweeper board. The hunter tries to catch the prey within given amount of time (40s).
 
-Networking: (TODO: How does your game implement client/server multiplayer? What messages are transmitted? Where in the code?)
+Networking: To simplify things a bit, I tried to keep as many things on the client side as possible. The scene and mesh are both stored on client, the client then send the player position to the server and query the current game state.
 
 Screen Shot:
 
 ![Screen Shot](screenshot.png)
 
-How To Play:
+How To Play (It supports only 2 players):
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+For both player, WASD to move and mouse cursor to rotate the camera.
+
+Each player's assigned role (hunter / prey) is shown on the button-left.
+
 
 Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
 

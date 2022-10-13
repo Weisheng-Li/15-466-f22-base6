@@ -6,6 +6,7 @@
 #include <list>
 #include <array>
 #include <random>
+#include <chrono>
 
 struct Connection;
 
@@ -62,6 +63,10 @@ struct Game {
 
 	std::mt19937 mt; //used for spawning players
 	uint32_t next_player_number = 1; //used for naming players
+
+	std::chrono::steady_clock::time_point begin;
+	bool is_clock_start = false;
+	int64_t since_begin = -1;
 
 	Game();
 

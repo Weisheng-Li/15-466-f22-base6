@@ -407,26 +407,22 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
 	if (game.players.front().role == Player::Role::HUNTER) {
 		constexpr float H = 0.09f;
-		lines.draw_text("Hunting Time",
+		std::string hunter_text = game.since_begin > 0?
+			"Hunting Time  " + std::to_string(game.since_begin) : "Hunting Time";
+
+		lines.draw_text(hunter_text,
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
-		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Hunting Time",
-			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
 	} else {
 		constexpr float H = 0.09f;
-		lines.draw_text("Don't get caught",
+		std::string prey_text = game.since_begin > 0?
+			"Don't get caught  " + std::to_string(game.since_begin) : "Don't get caught";
+
+		lines.draw_text(prey_text,
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
-		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Don't get caught",
-			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + + 0.1f * H + ofs, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
 	}
 
 	GL_ERRORS();

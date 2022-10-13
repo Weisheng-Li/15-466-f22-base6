@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <iostream>
 #include <cstring>
-#include <chrono>
 
 #include <glm/gtx/norm.hpp>
 
@@ -73,6 +72,11 @@ Player *Game::spawn_player() {
 	player.current_state = pos_to_layout(player.position);
 	player.role = player.start_position.x > 0 ? Player::Role::HUNTER : Player::Role::PREY;
 
+	if (players.size() >= 2 && !is_clock_start) {
+		begin = std::chrono::steady_clock::now();
+		is_clock_start = true;
+	}
+
 	return &player;
 }
 
@@ -95,6 +99,10 @@ void Game::remove_player(Player *player) {
 			found = true;
 			break;
 		}
+	}
+
+	if (players.size() < 2 && is_clock_start) {
+		is_clock_start = false;
 	}
 	assert(found);
 }
@@ -171,7 +179,22 @@ int16_t Game::pos_to_layout(glm::vec3 player_pos) {
 	return layout[row][col];
 }
 
-void Game::update(float elapsed) {
+void Game::update(float elapsed) {	
+	if (is_clock_start)
+	since_begin = 
+		std::chrono::duration_cast<std::chrono::seconds>
+		(std::chrono::steady_clock::now() - begin).count();
+
+	if (since_begin == 20) {
+		for (auto &p : players) {
+			if (p.role == Player::Role::PREY) 
+				p.current_state = -3;
+			else 
+				p.current_state = -1;
+		}
+		return;
+	}
+
 	//position/velocity update:
 	for (auto &p : players) {
 		p.current_state = pos_to_layout(p.position);
@@ -204,43 +227,6 @@ void Game::update(float elapsed) {
 			break;
 		}
 	}
-
-
-	// //collision resolution:
-	// for (auto &p1 : players) {
-	// 	//player/player collisions:
-	// 	for (auto &p2 : players) {
-	// 		if (&p1 == &p2) break;
-	// 		glm::vec2 p12 = p2.position - p1.position;
-	// 		float len2 = glm::length2(p12);
-	// 		if (len2 > (2.0f * PlayerRadius) * (2.0f * PlayerRadius)) continue;
-	// 		if (len2 == 0.0f) continue;
-	// 		glm::vec2 dir = p12 / std::sqrt(len2);
-	// 		//mirror velocity to be in separating direction:
-	// 		glm::vec2 v12 = p2.velocity - p1.velocity;
-	// 		glm::vec2 delta_v12 = dir * glm::max(0.0f, -1.75f * glm::dot(dir, v12));
-	// 		p2.velocity += 0.5f * delta_v12;
-	// 		p1.velocity -= 0.5f * delta_v12;
-	// 	}
-	// 	//player/arena collisions:
-	// 	if (p1.position.x < ArenaMin.x + PlayerRadius) {
-	// 		p1.position.x = ArenaMin.x + PlayerRadius;
-	// 		p1.velocity.x = std::abs(p1.velocity.x);
-	// 	}
-	// 	if (p1.position.x > ArenaMax.x - PlayerRadius) {
-	// 		p1.position.x = ArenaMax.x - PlayerRadius;
-	// 		p1.velocity.x =-std::abs(p1.velocity.x);
-	// 	}
-	// 	if (p1.position.y < ArenaMin.y + PlayerRadius) {
-	// 		p1.position.y = ArenaMin.y + PlayerRadius;
-	// 		p1.velocity.y = std::abs(p1.velocity.y);
-	// 	}
-	// 	if (p1.position.y > ArenaMax.y - PlayerRadius) {
-	// 		p1.position.y = ArenaMax.y - PlayerRadius;
-	// 		p1.velocity.y =-std::abs(p1.velocity.y);
-	// 	}
-	// }
-
 }
 
 
@@ -262,6 +248,7 @@ void Game::send_state_message(Connection *connection_, Player *connection_player
 		connection.send(player.start_position);
 		connection.send(player.current_state);
 		connection.send(player.role);
+		connection.send(since_begin);
 		// connection.send(player.velocity);
 		// connection.send(player.color);
 	
@@ -322,6 +309,7 @@ bool Game::recv_state_message(Connection *connection_) {
 		read(&player.start_position);
 		read(&player.current_state);
 		read(&player.role);
+		read(&since_begin);
 		// read(&player.velocity);
 		// read(&player.color);
 		// uint8_t name_len;

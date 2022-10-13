@@ -155,6 +155,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 }
 
 void PlayMode::update(float elapsed) {
+	static bool start_pos_set = false;
+
 	Player::Controls &controls = local_player.controls;
 	//player walking:
 	{
@@ -264,6 +266,24 @@ void PlayMode::update(float elapsed) {
 			}
 		}
 	}, 0.0);
+
+	if (game.players.size() > 0) {
+		Player &me = game.players.front();
+		if (me.start_position != glm::vec3(0.0f, 0.0f, 0.0f) && !start_pos_set) {
+			// reset player
+			transform->position = me.start_position;
+			local_player.position = transform->position;
+			transform->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+
+			//rotate camera facing direction (-z) to player facing direction (+y):
+			camera->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+			//start player walking at nearest walk point:
+			at = walkmesh->nearest_walk_point(transform->position);
+
+			start_pos_set = true;
+		}
+	}
 
 	if (game.players.size() > 1) {
 		// std::cout << "now we have more than one players!" << std::endl;

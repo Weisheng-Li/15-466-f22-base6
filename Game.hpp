@@ -38,7 +38,7 @@ struct Player {
 	// glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
 	// std::string name = "";
 	glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 start_position;
+	glm::vec3 start_position = glm::vec3(0.0f, 0.0f, 0.0f);
 	int16_t current_state = 0;
 
 	//returns 'false' if no message or not a controls message,
@@ -88,9 +88,9 @@ struct Game {
 	// the last component (vec4.w) indicates whether
 	// the start pos has been used
 	// 0 - not used; anything else - used
-	 std::array<glm::vec4, 4> start_pos = {
+	 std::array<glm::vec4, 2> start_pos = {
 		glm::vec4(-10.0f, -10.0f, 0.0f, 0.0f),
-		glm::vec4(-10.0f, -10.0f, 0.0f, 0.0f)
+		glm::vec4(10.0f, 10.0f, 0.0f, 0.0f)
 	};
 	//-------------------------------------------
 	

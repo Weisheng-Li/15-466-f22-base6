@@ -91,7 +91,14 @@ Player *Game::spawn_player() {
 		if (pos.w == 0.0f) {
 			pos.w = 1.0f;
 			player.start_position = glm::vec3(pos);
+			// std::cout << player.start_position.x << " " << player.start_position.y << " " << player.start_position.z << std::endl;
+			break;
 		}
+	}
+
+	for (auto &pos: start_pos) {
+		std::cout << pos.x << " " << pos.y << " "
+		 << pos.z << " " << pos.w << std::endl;
 	}
 
 	player.position = player.start_position;
@@ -120,7 +127,7 @@ void Game::remove_player(Player *player) {
 					       v1.y == v2.y &&
 						   v1.z == v2.z;
 				};
-				if (is_equal(pos, pi->position)) {
+				if (is_equal(pos, pi->start_position)) {
 					assert(pos.w != 0);
 					pos.w = 0;
 				}

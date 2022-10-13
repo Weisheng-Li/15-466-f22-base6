@@ -4,6 +4,7 @@
 
 #include <string>
 #include <list>
+#include <array>
 #include <random>
 
 struct Connection;
@@ -13,9 +14,8 @@ struct Connection;
 //Currently set up for a "client sends controls" / "server sends whole state" situation.
 
 enum class Message : uint8_t {
-	C2S_Controls = 1, //Greg!
-	S2C_State = 's',
-	//...
+	C2S_PlayerPos = 1,
+	S2C_State = 2,
 };
 
 //used to represent a control input:
@@ -29,21 +29,23 @@ struct Player {
 	//player inputs (sent from client):
 	struct Controls {
 		Button left, right, up, down, jump;
-
-		void send_controls_message(Connection *connection) const;
-
-		//returns 'false' if no message or not a controls message,
-		//returns 'true' if read a controls message,
-		//throws on malformed controls message
-		bool recv_controls_message(Connection *connection);
 	} controls;
 
 	//player state (sent from server):
-	glm::vec2 position = glm::vec2(0.0f, 0.0f);
-	glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
+	// glm::vec2 position = glm::vec2(0.0f, 0.0f);
+	// glm::vec2 velocity = glm::vec2(0.0f, 0.0f);
 
-	glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
-	std::string name = "";
+	// glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+	// std::string name = "";
+	glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 start_position;
+	int16_t current_state = 0;
+
+	//returns 'false' if no message or not a controls message,
+	//returns 'true' if read a controls message,
+	//throws on malformed controls message
+	void send_player_message(Connection *connection) const;
+	bool recv_player_message(Connection *connection);
 };
 
 struct Game {
@@ -71,6 +73,26 @@ struct Game {
 	inline static constexpr float PlayerRadius = 0.06f;
 	inline static constexpr float PlayerSpeed = 2.0f;
 	inline static constexpr float PlayerAccelHalflife = 0.25f;
+
+	//----------------- New ---------------------
+	// map layout:
+	inline static constexpr std::array<std::array<int16_t, 4>, 4> layout = {{
+		{1, 1, 1, 100}, 
+		{-1, 2, -1, 2}, 
+		{1, 3, 3, -1}, 
+		{0, 1, -1, 2}
+	}};
+	// conversion between player pos and map grid
+	int16_t pos_to_layout(glm::vec3 player_pos);
+
+	// the last component (vec4.w) indicates whether
+	// the start pos has been used
+	// 0 - not used; anything else - used
+	 std::array<glm::vec4, 4> start_pos = {
+		glm::vec4(-10.0f, -10.0f, 0.0f, 0.0f),
+		glm::vec4(-10.0f, -10.0f, 0.0f, 0.0f)
+	};
+	//-------------------------------------------
 	
 
 	//---- communication helpers ----

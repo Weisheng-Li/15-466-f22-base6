@@ -3,10 +3,14 @@
 #include "Connection.hpp"
 #include "Game.hpp"
 
+#include "Scene.hpp"
+#include "WalkMesh.hpp"
+
 #include <glm/glm.hpp>
 
 #include <vector>
 #include <deque>
+#include <array>
 
 struct PlayMode : Mode {
 	PlayMode(Client &client);
@@ -17,10 +21,17 @@ struct PlayMode : Mode {
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
-	//----- game state -----
+	Scene scene;
+	Scene::Transform *target = nullptr;
 
-	//input tracking for local player:
-	Player::Controls controls;
+	// local player info
+	WalkPoint at;
+	//transform is at player's feet and will be yawed by mouse left/right motion:
+	Scene::Transform *transform = nullptr;
+	//camera is at player's head and will be pitched by mouse up/down motion:
+	Scene::Camera *camera = nullptr;
+
+	Player local_player;
 
 	//latest game state (from server):
 	Game game;
